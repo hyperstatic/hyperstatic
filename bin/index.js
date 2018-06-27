@@ -2,7 +2,14 @@
 'use strict'
 
 const cosmiconfig = require('cosmiconfig')('hyperstatic')
+const prettyBytes = require('pretty-bytes')
+const prettyMs = require('pretty-ms')
+const timeSpan = require('time-span')
+const { promisify } = require('util')
+const chalk = require('chalk')
 const path = require('path')
+
+const countFiles = promisify(require('count-files'))
 
 const pkg = require('../package.json')
 const download = require('./download')
@@ -31,9 +38,15 @@ const cli = require('meow')({
   const urls = config.url || config.urls || cli.input
   if (!urls) cli.showHelp()
   const flags = { ...config, ...cli.flags }
-  log()
+  console.log()
+  let time = timeSpan()
   await download(urls, flags)
-  // TODO: print stats
-  log.info(`  Static bundle created at ${flags.output} 🎉`)
+  time = time()
+  const { files, bytes } = await countFiles(flags.output)
+  log.info(
+    `${urls.length} urls, ${files} files, ${prettyBytes(bytes)} ${chalk.gray(
+      `(${prettyMs(time)})`
+    )}`
+  )
   process.exit(0)
 })()

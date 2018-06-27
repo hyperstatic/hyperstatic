@@ -4,6 +4,7 @@ const { outputFile } = require('fs-extra')
 const download = require('download')
 const { URL } = require('url')
 const path = require('path')
+const chalk = require('chalk')
 
 const log = require('./log')
 
@@ -13,7 +14,7 @@ module.exports = output => async url => {
   const { pathname } = new URL(url)
 
   if (cache.has(url)) {
-    log.debug(`   ${pathname} [skipped]`)
+    log.debug(`${pathname} ${chalk.white('[skipped]')}`)
     return
   }
 
@@ -23,10 +24,10 @@ module.exports = output => async url => {
   try {
     data = await download(url)
     await outputFile(filepath, data)
-    log.debug(`   ${pathname}`)
+    log.debug(`${pathname}`)
   } catch (err) {
     await outputFile(filepath, data)
-    log.debug(`   ${pathname} [empty]`)
+    log.debug(`${pathname} ${chalk.white('[empty]')}`)
   }
 
   cache.add(url)

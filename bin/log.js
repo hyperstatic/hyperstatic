@@ -1,14 +1,17 @@
 'use strict'
 
+const timestamp = require('time-stamp')
 const chalk = require('chalk')
 
-const log = console.log
+const time = () => chalk.gray(`[${timestamp('HH:mm:ss')}]`)
 
-log.info = str => console.log(chalk.white(str))
-log.debug = str => console.log(chalk.gray(str))
-log.error = str => console.log(chalk.red(str))
+const log = str => console.log(`  ${time()} ${str || ''}`)
+
+log.info = str => console.log(`  ${time()} ${chalk.white(str)}`)
+log.debug = str => console.log(`  ${time()} ${chalk.gray(str)}`)
+log.error = str => console.log(` ${time()} ${chalk.red(str)}`)
 log.throw = err => {
-  console.log(chalk.red(err.message || err))
+  log.error(err.message || err)
   process.exit(1)
 }
 

@@ -27,10 +27,10 @@ const downloadUrl = ({
   const download = downloadFile(output)
   const filename = getFileName(new URL(url))
 
-  log.info(`  ${humanizeUrl(url)} → ${filename}`)
+  log.info(`${humanizeUrl(url)} → ${filename}`)
   await aigle.eachLimit(resourceUrls, concurrence, download)
   await outputFile(`${output}/${filename}`, html)
-  log()
+  console.log()
 }
 
 module.exports = async (urls, opts) => aigle.eachSeries(urls, downloadUrl(opts))

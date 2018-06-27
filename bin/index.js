@@ -2,11 +2,10 @@
 'use strict'
 
 const cosmiconfig = require('cosmiconfig')('hyperstatic')
-const downloadUrl = require('./download-url')
-const { first } = require('lodash')
 const path = require('path')
 
 const pkg = require('../package.json')
+const download = require('./download')
 const log = require('./log')
 
 require('update-notifier')({ pkg }).notify()
@@ -29,10 +28,12 @@ const cli = require('meow')({
 })
 ;(async () => {
   const { config = {} } = (await cosmiconfig.search()) || {}
-  const url = config.url || first(cli.input)
-  if (!url) cli.showHelp()
+  const urls = config.url || config.urls || cli.input
+  if (!urls) cli.showHelp()
   const flags = { ...config, ...cli.flags }
-  await downloadUrl(url, flags)
+  log()
+  await download(urls, flags)
+  // TODO: print stats
   log.info(`  Static bundle created at ${flags.output} 🎉`)
   process.exit(0)
 })()

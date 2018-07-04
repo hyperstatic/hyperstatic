@@ -34,7 +34,8 @@
     "pretty-ms": "~3.2.0",
     "time-span": "~2.0.0",
     "time-stamp": "~2.0.0",
-    "update-notifier": "~2.5.0"
+    "update-notifier": "~2.5.0",
+    "xml-urls": "~1.0.3"
   },
   "devDependencies": {
     "coveralls": "latest",

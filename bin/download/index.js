@@ -8,8 +8,8 @@ const htmlUrls = require('html-urls')
 const getHTML = require('html-get')
 const aigle = require('aigle')
 
-const downloadFile = require('./download-file')
-const log = require('./log')
+const downloadFile = require('./file')
+const log = require('../log')
 
 const getFileName = url =>
   url.pathname === '/' ? 'index.html' : `${url.pathname.replace('/', '')}.html`

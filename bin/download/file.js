@@ -3,10 +3,10 @@
 const { outputFile } = require('fs-extra')
 const download = require('download')
 const { URL } = require('url')
-const path = require('path')
 const chalk = require('chalk')
+const path = require('path')
 
-const log = require('./log')
+const log = require('../log')
 
 const cache = new Set()
 

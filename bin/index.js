@@ -13,6 +13,7 @@ const countFiles = promisify(require('count-files'))
 
 const pkg = require('../package.json')
 const download = require('./download')
+const getUrls = require('./get-urls')
 const log = require('./log')
 
 require('update-notifier')({ pkg }).notify()
@@ -35,7 +36,7 @@ const cli = require('meow')({
 })
 ;(async () => {
   const { config = {} } = (await cosmiconfig.search()) || {}
-  const urls = config.url || config.urls || cli.input
+  const urls = await getUrls(config.url || config.urls || cli.input)
   if (!urls) cli.showHelp()
   const flags = { ...config, ...cli.flags }
   console.log()

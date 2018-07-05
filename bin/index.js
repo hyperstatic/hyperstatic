@@ -74,6 +74,7 @@ const throwError = err => {
       const _files = `${files} files`
       const _time = chalk.gray(`(${prettyMs(time)})`)
       const _bytes = prettyBytes(bytes)
+      console.log()
       log.info(`${_urls}, ${_files}, ${_bytes} ${_time}`)
       process.exit(0)
     })

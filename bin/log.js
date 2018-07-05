@@ -2,17 +2,19 @@
 
 const timestamp = require('time-stamp')
 const chalk = require('chalk')
+const { EOL } = require('os')
 
 const time = () => chalk.gray(`[${timestamp('HH:mm:ss')}]`)
 
 const log = str => console.log(`  ${time()} ${str || ''}`)
 
-log.info = str => console.log(`  ${time()} ${chalk.white(str)}`)
-log.debug = str => console.log(`  ${time()} ${chalk.gray(str)}`)
-log.error = str => console.log(` ${time()} ${chalk.red(str)}`)
-log.throw = err => {
-  log.error(err.message || err)
-  process.exit(1)
-}
+const strip = str => str.toString().split(EOL)
+
+const print = color => str =>
+  strip(str).forEach(str => console.log(`  ${time()} ${chalk[color](str)}`))
+
+log.info = print('white')
+log.debug = print('gray')
+log.error = print('red')
 
 module.exports = log

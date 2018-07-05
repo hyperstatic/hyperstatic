@@ -2,18 +2,16 @@
 'use strict'
 
 const cosmiconfig = require('cosmiconfig')('hyperstatic')
+const hyperstatic = require('@hyperstatic/core')
 const prettyBytes = require('pretty-bytes')
+const humanizeUrl = require('humanize-url')
+const cleanStack = require('clean-stack')
 const prettyMs = require('pretty-ms')
-const timeSpan = require('time-span')
-const { promisify } = require('util')
+
 const chalk = require('chalk')
 const path = require('path')
 
-const countFiles = promisify(require('count-files'))
-
 const pkg = require('../package.json')
-const download = require('./download')
-const getUrls = require('./get-urls')
 const log = require('./log')
 
 require('update-notifier')({ pkg }).notify()
@@ -35,19 +33,42 @@ const cli = require('meow')({
   }
 })
 ;(async () => {
-  const { config = {} } = (await cosmiconfig.search()) || {}
-  const urls = await getUrls(config.url || config.urls || cli.input)
-  if (!urls) cli.showHelp()
-  const flags = { ...config, ...cli.flags }
-  console.log()
-  let time = timeSpan()
-  await download(urls, flags)
-  time = time()
-  const { files, bytes } = await countFiles(flags.output)
-  log.info(
-    `${urls.length} urls, ${files} files, ${prettyBytes(bytes)} ${chalk.gray(
-      `(${prettyMs(time)})`
-    )}`
-  )
-  process.exit(0)
+  try {
+    const { config = {} } = (await cosmiconfig.search()) || {}
+    const urls = config.url || config.urls || cli.input
+    if (!urls) cli.showHelp()
+    const flags = { ...config, ...cli.flags }
+    const bundle = hyperstatic(urls, flags)
+
+    console.log()
+
+    bundle.on('url', ({ url, filename }) => {
+      log.info(`${humanizeUrl(url)} → ${filename}`)
+    })
+
+    bundle.on('file:created', ({ pathname }) => {
+      log.debug(`${pathname}`)
+    })
+
+    bundle.on('file:skipped', ({ pathname }) => {
+      log.debug(`${pathname} ${chalk.white('[skipped]')}`)
+    })
+
+    bundle.on('file:error', ({ pathname }) => {
+      log.debug(`${pathname} ${chalk.white('[empty]')}`)
+    })
+
+    bundle.on('end', ({ files, bytes, time }) => {
+      const _urls = `${urls.length} urls`
+      const _files = `${files} files`
+      const _time = chalk.gray(`(${prettyMs(time)})`)
+      const _bytes = prettyBytes(bytes)
+      log.info(`${_urls}, ${_files}, ${_bytes} ${_time}`)
+      process.exit(0)
+    })
+  } catch (err) {
+    if (err.stack) log.error(cleanStack(err.stack))
+    else log.error(err.message || err)
+    process.exit(1)
+  }
 })()

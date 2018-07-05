@@ -64,7 +64,7 @@ const throwError = err => {
       log.debug(`${pathname} ${chalk.white('[empty]')}`)
     })
 
-    bundle.on('end', ({ files, bytes, time }) => {
+    bundle.on('end', ({ urls, files, bytes, time }) => {
       const _urls = `${urls.length} urls`
       const _files = `${files} files`
       const _time = chalk.gray(`(${prettyMs(time)})`)

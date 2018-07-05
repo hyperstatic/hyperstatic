@@ -32,6 +32,12 @@ const cli = require('meow')({
     }
   }
 })
+
+const throwError = err => {
+  if (err.stack) log.error(cleanStack(err.stack))
+  else log.error(err.message || err)
+  process.exit(1)
+}
 ;(async () => {
   try {
     const { config = {} } = (await cosmiconfig.search()) || {}
@@ -66,9 +72,9 @@ const cli = require('meow')({
       log.info(`${_urls}, ${_files}, ${_bytes} ${_time}`)
       process.exit(0)
     })
+
+    bundle.on('error', throwError)
   } catch (err) {
-    if (err.stack) log.error(cleanStack(err.stack))
-    else log.error(err.message || err)
-    process.exit(1)
+    throwError(err)
   }
 })()

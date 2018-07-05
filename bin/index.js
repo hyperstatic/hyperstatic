@@ -7,9 +7,9 @@ const prettyBytes = require('pretty-bytes')
 const humanizeUrl = require('humanize-url')
 const cleanStack = require('clean-stack')
 const prettyMs = require('pretty-ms')
-
 const chalk = require('chalk')
 const path = require('path')
+const os = require('os')
 
 const pkg = require('../package.json')
 const log = require('./log')
@@ -28,7 +28,12 @@ const cli = require('meow')({
     concurrence: {
       alias: 'c',
       type: 'number',
-      default: 5
+      default: os.cpus().length
+    },
+    debug: {
+      alias: 'd',
+      type: 'boolean',
+      default: false
     }
   }
 })
@@ -57,7 +62,7 @@ const throwError = err => {
     })
 
     bundle.on('file:skipped', ({ pathname }) => {
-      log.debug(`${pathname} ${chalk.white('[skipped]')}`)
+      if (flags.debug) log.debug(`${pathname} ${chalk.white('[skipped]')}`)
     })
 
     bundle.on('file:error', ({ pathname }) => {

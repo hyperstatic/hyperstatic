@@ -53,12 +53,13 @@ const throwError = err => {
 
     console.log()
 
-    bundle.on('url', ({ url, filename }) => {
-      log.info(`${humanizeUrl(url)} → ${filename}`)
+    bundle.on('url', ({ url, filename, time }) => {
+      const prettyTime = chalk.gray(prettyMs(time))
+      if (flags.debug) { log.info(`${humanizeUrl(url)} → ${filename} ${prettyTime}`) } else log.info(`${filename} ${prettyTime}`)
     })
 
     bundle.on('file:created', ({ pathname }) => {
-      log.debug(`${pathname}`)
+      if (flags.debug) log.debug(`${pathname}`)
     })
 
     bundle.on('file:skipped', ({ pathname }) => {
@@ -66,7 +67,7 @@ const throwError = err => {
     })
 
     bundle.on('file:error', ({ pathname }) => {
-      log.debug(`${pathname} ${chalk.white('[empty]')}`)
+      if (flags.debug) log.debug(`${pathname} ${chalk.white('[empty]')}`)
     })
 
     bundle.on('end', ({ urls, files, bytes, time }) => {

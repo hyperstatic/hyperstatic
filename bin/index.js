@@ -3,16 +3,21 @@
 
 const cosmiconfig = require('cosmiconfig')('hyperstatic')
 const hyperstatic = require('@hyperstatic/core')
-const prettyBytes = require('pretty-bytes')
-const humanizeUrl = require('humanize-url')
 const cleanStack = require('clean-stack')
-const prettyMs = require('pretty-ms')
-const chalk = require('chalk')
+const timestamp = require('time-stamp')
+const timeSpan = require('time-span')
+const createDebug = require('debug')
+const neatLog = require('neat-log')
 const path = require('path')
 const os = require('os')
 
+const fileCreated = createDebug('hyperstatic:file:created')
+const fileSkipped = createDebug('hyperstatic:file:skipped')
+const fileError = createDebug('hyperstatic:file:error')
+const fileUrl = createDebug('hyperstatic:file:url')
+
 const pkg = require('../package.json')
-const log = require('./log')
+const createRender = require('./render')
 
 require('update-notifier')({ pkg }).notify()
 
@@ -30,8 +35,17 @@ const cli = require('meow')({
       type: 'number',
       default: os.cpus().length
     },
-    debug: {
-      alias: 'd',
+    logspeed: {
+      type: 'number',
+      default: 100
+    },
+    verbose: {
+      alias: 'v',
+      type: 'boolean',
+      default: false
+    },
+    quiet: {
+      alias: 'q',
       type: 'boolean',
       default: false
     }
@@ -39,49 +53,63 @@ const cli = require('meow')({
 })
 
 const throwError = err => {
-  if (err.stack) log.error(cleanStack(err.stack))
-  else log.error(err.message || err)
+  if (err.stack) console.error(cleanStack(err.stack))
+  else console.error(err.message || err)
   process.exit(1)
 }
-;(async () => {
-  try {
-    const { config = {} } = (await cosmiconfig.search()) || {}
-    const urls = config.url || config.urls || cli.input
-    if (!urls) cli.showHelp()
-    const flags = { ...config, ...cli.flags }
-    const bundle = hyperstatic(urls, flags)
 
-    console.log()
+const main = async () => {
+  const { config = {} } = (await cosmiconfig.search()) || {}
+  const urls = config.url || config.urls || cli.input
+  if (!urls) cli.showHelp()
 
-    bundle.on('url', ({ url, filename, time }) => {
-      const prettyTime = chalk.gray(prettyMs(time))
-      if (flags.debug) { log.info(`${humanizeUrl(url)} → ${filename} ${prettyTime}`) } else log.info(`${filename} ${prettyTime}`)
+  const { logspeed, ...flags } = cli.flags
+  const opts = { ...config, ...flags }
+  const bundle = hyperstatic(urls, opts)
+  const state = { urls: [], count: 0, time: timeSpan() }
+  const neat = neatLog(createRender(opts), { state, logspeed })
+  console.log()
+
+  neat.use((state, bus) => {
+    bus.emit('render')
+
+    bundle.on('url', ({ url, filename, time, total }) => {
+      fileUrl(`${url} → ${filename}`)
+      state.total = total
+      ++state.count
+      state.urls.push({
+        total,
+        url,
+        filename,
+        time,
+        timestamp: timestamp('HH:mm:ss')
+      })
+      bus.emit('render')
     })
 
-    bundle.on('file:created', ({ pathname }) => {
-      if (flags.debug) log.debug(`${pathname}`)
-    })
+    setInterval(async () => {
+      bus.emit('render')
+      if (state.end || state.exitCode) process.exit(state.exitCode || 0)
+    }, logspeed)
 
-    bundle.on('file:skipped', ({ pathname }) => {
-      if (flags.debug) log.debug(`${pathname} ${chalk.white('[skipped]')}`)
-    })
-
-    bundle.on('file:error', ({ pathname }) => {
-      if (flags.debug) log.debug(`${pathname} ${chalk.white('[empty]')}`)
-    })
+    bundle.on('file:created', ({ pathname }) => fileCreated(pathname))
+    bundle.on('file:skipped', ({ pathname }) => fileSkipped(pathname))
+    bundle.on('file:error', ({ bundleUrl, url, pathname, err }) =>
+      fileError(`${url} → ${bundleUrl}`, err.message)
+    )
 
     bundle.on('end', ({ urls, files, bytes, time }) => {
-      const _urls = `${urls.length} urls`
-      const _files = `${files} files`
-      const _time = chalk.gray(`(${prettyMs(time)})`)
-      const _bytes = prettyBytes(bytes)
-      console.log()
-      log.info(`${_urls}, ${_files}, ${_bytes} ${_time}`)
-      process.exit(0)
+      state.end = true
+      state.endTime = state.time()
+      state.files = files
+      state.bytes = bytes
+      state.end = true
+      state.stats = { files, bytes, time }
+      bus.emit('render')
     })
 
     bundle.on('error', throwError)
-  } catch (err) {
-    throwError(err)
-  }
-})()
+  })
+}
+
+main().catch(throwError)

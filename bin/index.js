@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 'use strict'
 
+process.setMaxListeners(Infinity)
+
 const cosmiconfig = require('cosmiconfig')('hyperstatic')
 const hyperstatic = require('@hyperstatic/core')
 const cleanStack = require('clean-stack')
@@ -9,7 +11,6 @@ const timeSpan = require('time-span')
 const createDebug = require('debug')
 const neatLog = require('neat-log')
 const path = require('path')
-const os = require('os')
 
 const fileCreated = createDebug('hyperstatic:file:created')
 const fileSkipped = createDebug('hyperstatic:file:skipped')
@@ -32,8 +33,7 @@ const cli = require('meow')({
     },
     concurrence: {
       alias: 'c',
-      type: 'number',
-      default: os.cpus().length
+      type: 'number'
     },
     logspeed: {
       type: 'number',
@@ -92,7 +92,9 @@ const main = async () => {
       if (state.end || state.exitCode) process.exit(state.exitCode || 0)
     }, logspeed)
 
-    bundle.on('file:created', ({ pathname }) => fileCreated(pathname))
+    bundle.on('file:created', ({ url, pathname }) =>
+      fileCreated(`${url} → ${pathname}`)
+    )
     bundle.on('file:skipped', ({ pathname }) => fileSkipped(pathname))
     bundle.on('file:error', ({ bundleUrl, url, pathname, err }) =>
       fileError(`${url} → ${bundleUrl}`, err.message)

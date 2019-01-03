@@ -44,6 +44,10 @@ const cli = require('meow')({
       type: 'boolean',
       default: false
     },
+    whitelist: {
+      alias: 'w',
+      type: 'array'
+    },
     quiet: {
       alias: 'q',
       type: 'boolean',
@@ -95,9 +99,11 @@ const main = async () => {
     bundle.on('file:created', ({ url, pathname }) =>
       fileCreated(`${url} → ${pathname}`)
     )
+
     bundle.on('file:skipped', ({ pathname }) => fileSkipped(pathname))
-    bundle.on('file:error', ({ bundleUrl, url, pathname, err }) =>
-      fileError(`${url} → ${bundleUrl}`, err.message)
+
+    bundle.on('file:error', ({ url, pathname, err }) =>
+      fileError(`${url} → ${pathname}`, err.message || err)
     )
 
     bundle.on('end', ({ urls, files, bytes, time }) => {
